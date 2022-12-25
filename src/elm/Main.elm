@@ -2,8 +2,6 @@ module Main exposing (main)
 
 import Bet
 import Browser
-import Css
-import Debug
 import FinishGame
 import FinishRound
 import Html exposing (Html, a, div, h2, i, node, text)
@@ -35,7 +33,7 @@ main =
 
 init : Model
 init =
-    Prepare Prepare.init
+    Prepare (Prepare.init [])
 
 
 update : Msg -> Model -> Model
@@ -83,8 +81,8 @@ update msg model =
                 Ok m ->
                     FinishGame m
 
-                Err _ ->
-                    init
+                Err m ->
+                    Prepare (Prepare.init (List.map .name m))
 
         _ ->
             Invalid
@@ -113,7 +111,6 @@ view model =
     div [ class "app" ]
         [ node "link" [ href "https://unpkg.com/nes.css@2.3.0/css/nes.min.css", rel "stylesheet" ] []
         , node "link" [ href "https://fonts.googleapis.com/css?family=Press+Start+2P", rel "stylesheet" ] []
-        , node "style" [] [ text Css.style ]
         , div [ class "nes-container is-rounded" ] [ header, body ]
         ]
 

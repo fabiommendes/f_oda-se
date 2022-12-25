@@ -4,19 +4,6 @@ module Utils exposing
     , mapAt, rotateList, swapElem, maybeToList
     )
 
-{-| Utility functions
-
-
-# Lists
-
-@docs discardElem
-
-
-# Events and HTML
-
-@docs onEnter
-
--}
 
 import Html exposing (Attribute)
 import Html.Events exposing (keyCode, on)

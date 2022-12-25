@@ -1,72 +1,65 @@
 module FinishGame exposing (Model, Msg, init, update, view)
 
-import Html exposing (Attribute, Html, button, div, form, input, span, text)
+import Html exposing (Html, button, div, h2, h3, i, table, tbody, td, text, th, tr)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Player exposing (Player, player)
-import Utils exposing (discardElem, onEnter)
+import Player exposing (Player)
 
 
 type alias Model =
-    { current : String
-    , registered : List Player
-    }
+    List Player
 
 
 type Msg
-    = OnUpdateName String
-    | OnAddName String
-    | OnPopName Int
-    | OnFinish
+    = OnFinish
 
 
 init : List Player -> Model
-init ps =
-    { current = ""
-    , registered = ps
-    }
+init =
+    List.sortBy Player.points >> List.reverse
 
 
 update : Msg -> Model -> Result (List Player) Model
 update msg model =
     case msg of
-        OnUpdateName x ->
-            Ok { model | current = x }
-
-        OnAddName x ->
-            if x == "" then
-                Ok { model | current = "" }
-
-            else
-                Ok { registered = player x :: model.registered, current = "" }
-
-        OnPopName i ->
-            Ok { model | registered = discardElem i model.registered }
-
         OnFinish ->
-            Err model.registered
+            Err model
 
 
 view : Model -> Html Msg
 view model =
     let
-        names =
-            List.indexedMap viewPlayer model.registered
+        rows =
+            List.indexedMap viewPlayer model
     in
-    div [ class "prepare" ]
-        [ div [ class "prepare-players" ] names
+    div []
+        [ h2 [] [ text "Resultado" ]
+        , h3 [] [ text ("Parabéns " ++ (List.head model |> Maybe.map .name |> Maybe.withDefault "Unknown") ++ "!") ]
+        , table
+            [ class "nes-table wide is-centered is-bordered" ]
+            [ tr []
+                [ th [] [ text "#" ]
+                , th [] [ text "Nome" ]
+                , th [] [ text "Pontos" ]
+                ]
+            , tbody [] rows
+            ]
+        , button [ class "nes-btn wide is-primary margin-top", onClick OnFinish ] [ text "Começar outro jogo" ]
         ]
 
 
 viewPlayer : Int -> Player -> Html Msg
-viewPlayer i p =
-    div [ class "prepare-player" ]
-        [ span []
-            [ text (String.fromInt (i + 1))
-            , text ". "
+viewPlayer idx p =
+    if idx == 0 then
+        tr [ class "finish is-success" ]
+            [ td [ class "center vpad-lg" ] [ i [ class "nes-icon trophy" ] [] ]
+            , td [] [ text p.name ]
+            , td [] [ text (String.fromInt (Player.points p)) ]
             ]
-        , span
-            []
-            [ text p.name ]
-        , button [ onClick (OnPopName i) ] [ text "x" ]
-        ]
+
+    else
+        tr [ class "finish" ]
+            [ td [ class "center vpad-lg" ] [ text (String.fromInt (idx + 1)) ]
+            , td [] [ text p.name ]
+            , td [] [ text (String.fromInt (Player.points p)) ]
+            ]

@@ -22,10 +22,10 @@ type Msg
     | OnFinish
 
 
-init : Model
-init =
+init : List String -> Model
+init names =
     { current = ""
-    , registered = []
+    , registered = List.map Player.player names
     }
 
 
