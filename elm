@@ -1,0 +1,1 @@
+/nix/store/sdsnxrpvwa3zyz5kkjzzlwknys20r8ig-elm-0.19.1/bin/.elm-wrapped
