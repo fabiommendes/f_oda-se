@@ -4,7 +4,7 @@
   "description": "Tabela de pontos do Der Trumpften",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "vite",
+    "dev": "vite --base=/f_oda-se/",
     "build": "vite build --base f_oda-se",
     "preview": "vite preview"
   },
@@ -18,7 +18,9 @@
     "url": "https://github.com/fabiommendes/f_da-se/issues"
   },
   "homepage": "https://github.com/fabiommendes/f_da-se#readme",
-  "dependencies": {},
+  "dependencies": {
+    "lighthouse": "^9.6.8"
+  },
   "devDependencies": {
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
