@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Player exposing (Player, player)
-import Utils exposing (maybeToList)
+import Utils exposing (iff, loader, maybeToList)
 
 
 type alias Model =
@@ -12,6 +12,7 @@ type alias Model =
     , todo : List Player
     , current : Maybe Player
     , nBets : Int
+    , isClosed : Bool
     }
 
 
@@ -20,6 +21,8 @@ type Msg
     | OnDecrement
     | OnRegister
     | OnFinish
+    | OnUndo
+    | OnClose
 
 
 players : Model -> List Player
@@ -33,6 +36,7 @@ init lst =
     , todo = lst |> List.tail |> Maybe.withDefault []
     , current = List.head lst
     , nBets = 0
+    , isClosed = False
     }
 
 
@@ -67,14 +71,28 @@ update msg model =
                 _ ->
                     Ok model
 
+        OnUndo ->
+            case ( model.done, model.current ) of
+                ( [], _ ) ->
+                    Ok model
+
+                ( done :: rest, Nothing ) ->
+                    Ok { model | done = rest, current = Just done }
+
+                ( done :: rest, Just current ) ->
+                    Ok { model | done = rest, current = Just done, todo = current :: model.todo }
+
         OnFinish ->
             Err model.done
 
+        OnClose ->
+            Ok { model | isClosed = True }
 
-view : Model -> Html Msg
+
+view : Model -> ( Html Msg, Html Msg )
 view model =
     let
-        formData =
+        action =
             case model.current of
                 Just _ ->
                     viewPlaceBetForm model
@@ -82,18 +100,35 @@ view model =
                 Nothing ->
                     viewWaitUntilFinish model
     in
-    div [ class "bet" ]
+    ( div [ style "overflow-y" "auto" ]
         [ viewDescription model
         , viewPlacedBets model
-        , formData
         ]
+    , action
+    )
 
 
 viewWaitUntilFinish : Model -> Html Msg
-viewWaitUntilFinish _ =
-    div [ class "bet-update nes-container is-rounded wide", style "background" "#eee", style "margin-top" "2em" ]
-        [ text "Esperando a rodada terminar..."
-        , button [ class "nes-btn is-warning wide", onClick OnFinish ] [ text "Registar resultados" ]
+viewWaitUntilFinish model =
+    div []
+        [ if model.isClosed then
+            div
+                [ class "bet-update nes-container wide"
+                , style "background" "#eee"
+                , style "margin" "2em 0"
+                , style "padding" "2em 2em 11em 2em"
+                ]
+                [ text "Esperando a rodada terminar..."
+                , loader
+                ]
+
+          else
+            button [ class "nes-btn is-error wide", onClick OnUndo ] [ text "oops!" ]
+        , button
+            [ class "nes-btn is-primary wide"
+            , onClick (iff model.isClosed OnFinish OnClose)
+            ]
+            [ text (iff model.isClosed "terminou..." "começar rodada!") ]
         ]
 
 
@@ -106,18 +141,40 @@ viewPlaceBetForm model =
         canPlace =
             not (List.isEmpty model.todo) || missingBets /= model.nBets
 
+        canUndo =
+            model.done /= []
+
         placeButton =
             if canPlace then
-                button [ class "nes-btn is-warning", onClick OnRegister ] [ text "Apostar" ]
+                button [ class "nes-btn is-primary wide", onClick OnRegister ] [ text "registar aposta" ]
 
             else
-                button [ class "nes-btn is-disabled" ] [ text "Foda-se!" ]
+                button [ class "nes-btn is-disabled wide" ] [ text "foda-se!" ]
+
+        undoButton =
+            if canUndo then
+                button [ class "nes-btn is-error wide", onClick OnUndo ] [ text "oops!" ]
+
+            else
+                button [ class "nes-btn is-disabled wide" ] [ text "oops!" ]
     in
-    div [ class "bet-update nes-container is-rounded wide", style "background" "#eee", style "margin-top" "2em" ]
-        [ text ((model.current |> Maybe.map .name |> Maybe.withDefault "<...>") ++ ": ")
-        , button [ class "nes-btn", onClick OnDecrement ] [ text "-" ]
-        , text (" " ++ String.fromInt model.nBets ++ " ")
-        , button [ class "nes-btn", onClick OnIncrement ] [ text "+" ]
+    div []
+        [ div
+            [ class "nes-container wide"
+            , style "background" "#eee"
+            , style "margin" "0.5em 0"
+            , style "display" "flex"
+            , style "align-items" "center"
+            ]
+            [ div [ style "flex" "1" ]
+                [ text ((model.current |> Maybe.map .name |> Maybe.withDefault "<...>") ++ ": ") ]
+            , div []
+                [ button [ class "nes-btn", onClick OnDecrement ] [ text "-" ]
+                , text (" " ++ String.fromInt model.nBets ++ " ")
+                , button [ class "nes-btn", onClick OnIncrement ] [ text "+" ]
+                ]
+            ]
+        , undoButton
         , placeButton
         ]
 
@@ -131,11 +188,15 @@ viewDescription model =
         -- Quando todos jogadores terminam as apostas, antecipa-se o próximo round
         -- Criamos uma lista sem uma aposta
         playerList =
-            case (model.current, model.done) of 
-                (Nothing, []) -> []
-                (Nothing, x::xs) -> (Player.popBet x) :: xs
-                (Just x, xs) -> x :: xs ++ model.todo
+            case ( model.current, model.done ) of
+                ( Nothing, [] ) ->
+                    []
 
+                ( Nothing, x :: xs ) ->
+                    Player.popBet x :: xs
+
+                ( Just x, xs ) ->
+                    x :: xs ++ model.todo
 
         ( nRoundDisplay, nCards ) =
             ( Player.nRound False playerList + 1
@@ -145,7 +206,7 @@ viewDescription model =
     div []
         [ h2 [] [ text "Rodada de apostas" ]
         , h3 [] [ text (String.fromInt nRoundDisplay ++ "a rodada") ]
-        , p [] [ text <| String.fromInt totalBets ++ " apostas com " ++ String.fromInt nCards ++ " cartas." ]
+        , p [] [ text <| String.fromInt (totalBets + model.nBets) ++ " apostas com " ++ String.fromInt nCards ++ " cartas." ]
         ]
 
 
@@ -159,7 +220,10 @@ viewPlacedBets model =
             (model.done |> List.reverse |> List.indexedMap viewBet)
                 ++ (missing |> List.indexedMap viewEmptyBet)
     in
-    table [ class "nes-table wide is-centered is-bordered" ]
+    table
+        [ class "nes-table wide is-centered is-bordered"
+        , style "width" "calc(100% - 0.5rem)"
+        ]
         [ tr []
             [ th [] [ text "Nome" ]
             , th [] [ text "Apostas" ]
@@ -172,7 +236,7 @@ viewPlacedBets model =
 viewBet : Int -> Player -> Html Msg
 viewBet _ p =
     tr [ class "bet-done-player" ]
-        [ td [] [ text p.name ]
+        [ td [ class "wide" ] [ text p.name ]
         , td [] [ text (String.fromInt (Player.nBets p)) ]
         , td [] [ text (String.fromInt (Player.points p)) ]
         ]
@@ -181,7 +245,7 @@ viewBet _ p =
 viewEmptyBet : Int -> Player -> Html Msg
 viewEmptyBet _ p =
     tr [ class "bet-done-player nes-text is-disabled" ]
-        [ td [] [ text p.name ]
+        [ td [ class "wide" ] [ text p.name ]
         , td [] [ text "-" ]
         , td [] [ text (String.fromInt (Player.points p)) ]
         ]

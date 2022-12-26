@@ -1,6 +1,6 @@
 module FinishGame exposing (Model, Msg, init, update, view)
 
-import Html exposing (Html, button, div, h2, h3, i, table, tbody, td, text, th, tr)
+import Html exposing (Html, button, div, h2, h3, i, span, table, tbody, td, text, th, tr)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Player exposing (Player)
@@ -26,17 +26,19 @@ update msg model =
             Err model
 
 
-view : Model -> Html Msg
+view : Model -> ( Html Msg, Html Msg )
 view model =
     let
         rows =
             List.indexedMap viewPlayer model
     in
-    div []
+    ( div []
         [ h2 [] [ text "Resultado" ]
         , h3 [] [ text ("Parabéns " ++ (List.head model |> Maybe.map .name |> Maybe.withDefault "Unknown") ++ "!") ]
         , table
-            [ class "nes-table wide is-centered is-bordered" ]
+            [ class "nes-table is-centered is-bordered"
+            , style "width" "calc(100% - 0.5rem)"
+            ]
             [ tr []
                 [ th [] [ text "#" ]
                 , th [] [ text "Nome" ]
@@ -44,16 +46,42 @@ view model =
                 ]
             , tbody [] rows
             ]
-        , button [ class "nes-btn wide is-primary margin-top", onClick OnFinish ] [ text "Começar outro jogo" ]
         ]
+    , button [ class "nes-btn wide is-primary margin-top", onClick OnFinish ] [ text "Começar outro jogo" ]
+    )
 
 
 viewPlayer : Int -> Player -> Html Msg
 viewPlayer idx p =
     if idx == 0 then
-        tr [ class "finish is-success" ]
-            [ td [ class "center vpad-lg" ] [ i [ class "nes-icon trophy" ] [] ]
-            , td [] [ text p.name ]
+        let
+            chars =
+                String.toList p.name
+
+            n =
+                List.length chars
+
+            duration =
+                0.25
+
+            step =
+                duration / toFloat n
+
+            animateChar i ch =
+                span
+                    [ style "animation" <| "winner-wave " ++ String.fromFloat duration ++ "s infinite"
+                    , style "animation-delay" (String.fromFloat (step * toFloat i) ++ "s")
+                    , style "display" "table-cell"
+                    , style "font-size" "125%"
+                    ]
+                    [ text (String.fromChar ch) ]
+        in
+        tr [ class "finish is-success winner" ]
+            [ td [ class "center vpad-lg" ]
+                [ div [ class "winner-scale" ] [ i [ class "nes-icon trophy" ] [] ]
+                ]
+            , td [] <|
+                List.indexedMap animateChar chars
             , td [] [ text (String.fromInt (Player.points p)) ]
             ]
 

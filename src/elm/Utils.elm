@@ -1,11 +1,15 @@
 module Utils exposing
     ( discardElem
+    , iff
+    , mapAt
+    , maybeToList
     , onEnter
-    , mapAt, rotateList, swapElem, maybeToList
+    , rotateList
+    , swapElem, loader
     )
 
-
-import Html exposing (Attribute)
+import Html exposing (Attribute, div)
+import Html.Attributes exposing (class)
 import Html.Events exposing (keyCode, on)
 import Json.Decode as Json
 
@@ -101,3 +105,40 @@ maybeToList mx =
 
         Nothing ->
             []
+
+
+iff : Bool -> c -> c -> c
+iff a b c =
+    if a then
+        b
+
+    else
+        c
+
+
+loader : Html.Html msg
+loader =
+    div [ class "loader" ]
+        [ div [ class "loader-inner" ]
+            [ div [ class "loader-line-wrap" ]
+                [ div [ class "loader-line" ]
+                    []
+                ]
+            , div [ class "loader-line-wrap" ]
+                [ div [ class "loader-line" ]
+                    []
+                ]
+            , div [ class "loader-line-wrap" ]
+                [ div [ class "loader-line" ]
+                    []
+                ]
+            , div [ class "loader-line-wrap" ]
+                [ div [ class "loader-line" ]
+                    []
+                ]
+            , div [ class "loader-line-wrap" ]
+                [ div [ class "loader-line" ]
+                    []
+                ]
+            ]
+        ]

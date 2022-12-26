@@ -1,11 +1,10 @@
 module FinishRound exposing (Model, Msg, init, update, view)
 
-import Debug
 import Html exposing (Html, button, div, h2, h3, p, span, strong, table, tbody, td, text, th, tr)
 import Html.Attributes exposing (class, disabled, style)
 import Html.Events exposing (onClick)
-import Player exposing (Player, nBets, withBet)
-import Utils exposing (mapAt)
+import Player exposing (Player, withBet)
+import Utils exposing (iff, mapAt)
 
 
 type alias Model =
@@ -40,7 +39,7 @@ update msg model =
             Err model
 
 
-view : Model -> Html Msg
+view : Model -> ( Html Msg, Html Msg )
 view model =
     let
         thead =
@@ -55,7 +54,11 @@ view model =
             List.indexedMap viewPlayer model
 
         data =
-            table [ class "nes-table is-rounded is-bordered" ] [ thead, tbody [] body ]
+            table
+                [ class "nes-table is-rounded is-bordered"
+                , style "width" "calc(100% - 0.5rem)"
+                ]
+                [ thead, tbody [] body ]
 
         nRound =
             Player.nRound True model
@@ -70,35 +73,31 @@ view model =
             nWins - nCards
 
         correctMsg =
-            p [] [ text "Corrija a lista de vitórias para continuar." ]
+            p [] [ text "Corrija a tabela para continuar." ]
 
-        (finishWarning, nextClass, nextLabel) =
+        ( finishWarning, nextClass, nextLabel ) =
             if Player.isFinishedGame model then
-                (" (última)", "is-error", "Finalizar jogo!")
+                ( " (última)", "is-error", "Finalizar jogo!" )
 
             else
-                ("", "is-success", "Pŕoxima rodada")
-
-                
+                ( "", iff (diff == 0) "is-success" "is-disabled", "Pŕoxima rodada" )
     in
-    div []
-        [ h2 [] [ text "Registrando resultados" ]
+    ( div []
+        [ h2 [] [ text "Resultados" ]
         , h3 []
             [ text (String.fromInt (nRound + 1) ++ "a rodada")
             , span [ class "nes-text is-error" ] [ text finishWarning ]
             ]
-        -- , text
-        --     (Debug.toString
-        --         { nWins = nWins
-        --         , nCards = nCards
-        --         , nRound = nRound
-        --         , finish = Player.isFinishedGame model
-        --         }
-        --     )
         , data
-        , div [ class "nes-container is-rounded wide", style "background" "#eee", style "margin-top" "1.5em" ]
+        ]
+    , div []
+        [ div
+            [ class "nes-container wide"
+            , style "background" "#eee"
+            , style "margin" "1em 0"
+            ]
             (if diff == 0 then
-                [ button [ class <| "nes-btn wide " ++ nextClass , onClick OnFinish, disabled (nCards /= nWins) ] [ text nextLabel ] ]
+                [ strong [] [ text "Podemos finalizar?" ] ]
 
              else if diff == 1 then
                 [ strong [] [ text "1 vitória adicional." ], correctMsg ]
@@ -112,7 +111,14 @@ view model =
              else
                 [ strong [] [ text (String.fromInt -diff ++ " vitórias a menos.") ], correctMsg ]
             )
+        , button
+            [ class <| "nes-btn wide " ++ nextClass
+            , onClick OnFinish
+            , disabled (nCards /= nWins)
+            ]
+            [ text nextLabel ]
         ]
+    )
 
 
 viewPlayer : Int -> Player -> Html Msg
@@ -131,9 +137,13 @@ viewPlayer i p =
     tr [ class cls ]
         [ td [] [ text (String.fromInt (i + 1)) ]
         , td [] [ text p.name ]
-        , td []
+        , td
+            [ style "font-size" "100%"
+            , style "padding" "0"
+            , style "white-space" "nowrap"
+            ]
             [ button [ class "nes-btn is-primary", onClick (OnDecrement i) ] [ text "-" ]
-            , text (" " ++ String.fromInt n ++ "/" ++ String.fromInt m ++ " ")
+            , text (String.fromInt n ++ "/" ++ String.fromInt m)
             , button [ class "nes-btn is-primary", onClick (OnIncrement i) ] [ text "+" ]
             ]
         , td [] [ text (String.fromInt (Player.points p)) ]

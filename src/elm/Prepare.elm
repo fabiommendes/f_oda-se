@@ -1,10 +1,10 @@
 module Prepare exposing (Model, Msg, init, update, view)
 
-import Html exposing (Html, button, div, h1, h2, h3, input, span, table, tbody, td, text, th, tr)
+import Html exposing (Html, button, div, h2, h3, input, table, tbody, td, text, th, tr)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Player exposing (Player, player)
-import Utils exposing (discardElem, onEnter, swapElem)
+import Utils exposing (discardElem, iff, onEnter, swapElem)
 
 
 type alias Model =
@@ -58,7 +58,7 @@ update msg model =
             Err model.registered
 
 
-view : Model -> Html Msg
+view : Model -> ( Html Msg, Html Msg )
 view model =
     let
         name =
@@ -70,13 +70,9 @@ view model =
         hasRepeatedName =
             List.any (\p -> p.name == model.current) model.registered
 
-        spacing =
-            div [] []
-
-        addButton =
-            div [ class "nes-container is-rounded wide", style "margin-top" "2em", style "background" "#eee" ]
-                [ h3 [] [ text "Acrescentar jogadxr" ]
-                , input [ class "nes-input wide", onInput OnUpdateName, onEnter (OnAddName name), value name, placeholder "Nome" ] []
+        addPlayer =
+            div [ class "nes-container wide", style "margin-top" "2em", style "background" "#eee" ]
+                [ input [ class "nes-input wide", onInput OnUpdateName, onEnter (OnAddName name), value name, placeholder "Nome" ] []
                 , button
                     [ class "nes-btn wide is-primary", onClick (OnAddName name), disabled hasRepeatedName ]
                     [ text "+" ]
@@ -84,13 +80,14 @@ view model =
 
         data =
             if nPlayers > 0 then
-                table [ class "nes-table is-centered is-bordered" ]
+                table
+                    [ class "nes-table is-centered is-bordered"
+                    , style "width" "calc(100% - 0.5rem)"
+                    ]
                     [ tr []
-                        [ th [ class "small" ] [ text "#" ]
+                        [ th [ class "nes-text" ] [ text "#" ]
                         , th [] [ text "Nome" ]
                         , th [ class "small" ] [ text "" ]
-                        , th [ class "small" ] [ text "" ]
-                        , th [ class "small" ] [ text "x" ]
                         ]
                     , tbody [] names
                     ]
@@ -101,19 +98,30 @@ view model =
         nPlayers =
             List.length model.registered
 
+        enableStart =
+            nPlayers >= 2
+
         startButton =
-            button [ class "nes-btn is-warning wide", style "margin-top" "2em", onClick OnFinish, disabled (nPlayers < 2) ] [ text "COMEÇAR JOGO!" ]
+            button
+                [ class "nes-btn wide"
+                , class <| iff enableStart "is-primary" "is-disabled"
+                , style "margin-top" "2em"
+                , onClick OnFinish
+                , disabled (not enableStart)
+                ]
+                [ text "COMEÇAR JOGO!" ]
 
         size =
             List.length model.registered
     in
-    div [ class "prepare" ]
-        (if size < 10 then
-            [ data, spacing, addButton, startButton ]
+    ( div [ class "prepare" ]
+        [ h2 [] [ text "Registro de jogadores" ], data ]
+    , if size < 10 then
+        div [] [ addPlayer, startButton ]
 
-         else
-            [ data, spacing, startButton ]
-        )
+      else
+        startButton
+    )
 
 
 viewPlayer : Int -> Int -> Player -> Html Msg
@@ -134,9 +142,14 @@ viewPlayer size i p =
                 "is-warning"
     in
     tr []
-        [ td [ class "small" ] [ text (String.fromInt (i + 1)) ]
-        , td [] [ text p.name ]
-        , td [ class "small" ] [ button [ onClick (OnDown i), class ("nes-btn " ++ downClass), style "transform" "rotateZ(90deg)" ] [ text ">" ] ]
-        , td [ class "small" ] [ button [ onClick (OnUp i), class ("nes-btn " ++ upClass), style "transform" "rotateZ(-90deg)" ] [ text ">" ] ]
-        , td [ class "small" ] [ button [ onClick (OnPopName i), class "nes-btn is-error" ] [ text "x" ] ]
+        [ td [ class "small center" ] [ text (String.fromInt (i + 1)) ]
+        , td [ class "wide" ] [ text p.name ]
+        , td
+            [ class "small"
+            , style "white-space" "nowrap"
+            ]
+            [ button [ onClick (OnDown i), class ("nes-btn " ++ downClass) ] [ text "↓" ]
+            , button [ onClick (OnUp i), class ("nes-btn " ++ upClass) ] [ text "↑" ]
+            , button [ onClick (OnPopName i), class "nes-btn is-error" ] [ text "x" ]
+            ]
         ]

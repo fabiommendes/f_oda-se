@@ -4,8 +4,8 @@ import Bet
 import Browser
 import FinishGame
 import FinishRound
-import Html exposing (Html, a, div, h2, i, node, text)
-import Html.Attributes exposing (class, href, rel)
+import Html exposing (Html, a, div, h2, i, text)
+import Html.Attributes exposing (class, href, style)
 import Player
 import Prepare
 import Utils exposing (rotateList)
@@ -91,27 +91,32 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
-        body =
+        bimap f ( a, b ) =
+            ( f a, f b )
+
+        ( body, action ) =
             case model of
                 Prepare m ->
-                    Prepare.view m |> Html.map OnPrepare
+                    Prepare.view m |> bimap (Html.map OnPrepare)
 
                 Bet m ->
-                    Bet.view m |> Html.map OnBet
+                    Bet.view m |> bimap (Html.map OnBet)
 
                 FinishRound m ->
-                    FinishRound.view m |> Html.map OnFinishRound
+                    FinishRound.view m |> bimap (Html.map OnFinishRound)
 
                 FinishGame m ->
-                    FinishGame.view m |> Html.map OnFinishGame
+                    FinishGame.view m |> bimap (Html.map OnFinishGame)
 
                 Invalid ->
-                    div [] [ text "Estado inválido!" ]
+                    ( div [] [ text "Estado inválido!" ]
+                    , div [] []
+                    )
     in
     div [ class "app" ]
-        [ node "link" [ href "https://unpkg.com/nes.css@2.3.0/css/nes.min.css", rel "stylesheet" ] []
-        , node "link" [ href "https://fonts.googleapis.com/css?family=Press+Start+2P", rel "stylesheet" ] []
-        , div [ class "nes-container is-rounded" ] [ header, body ]
+        [ header
+        , div [ style "overflow-y" "auto" ] [ body ]
+        , div [] [ action ]
         ]
 
 
@@ -119,5 +124,6 @@ header : Html a
 header =
     div [ class "header" ]
         [ h2 [ class "topic" ] [ a [ href "#Der Trumpften" ] [ text "# " ], text "der trumpften" ]
-        , div [ class "logo" ] [ i [ class "nes-icon trophy is-large" ] [] ]
+
+        -- , div [ class "logo" ] [ i [ class "nes-icon trophy" ] [] ]
         ]
